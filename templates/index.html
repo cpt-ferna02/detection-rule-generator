@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Detection Rule Generator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛡️ AI Detection Rule Generator</h1>
+      <p>Describe a threat or attack technique — get detection rules for Sigma, Splunk, Sentinel, and Wazuh instantly.</p>
+    </header>
+
+    <div class="input-section">
+      <div class="form-group">
+        <label for="threat">Threat Description *</label>
+        <textarea id="threat" rows="4" placeholder="e.g. PowerShell downloading and executing a remote script to establish persistence via scheduled task"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="mitre_id">MITRE ATT&CK ID (optional)</label>
+        <input type="text" id="mitre_id" placeholder="e.g. T1059.001">
+      </div>
+      <button id="generate-btn" onclick="generateRules()">Generate Detection Rules</button>
+    </div>
+
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p>Generating rules with Claude AI...</p>
+    </div>
+
+    <div id="error-box" class="hidden error"></div>
+
+    <div id="results" class="hidden">
+      <div class="summary-card">
+        <div class="summary-row"><span class="label">Threat</span><span id="res-summary"></span></div>
+        <div class="summary-row"><span class="label">MITRE</span><span id="res-mitre"></span></div>
+        <div class="summary-row"><span class="label">Severity</span><span id="res-severity" class="severity-badge"></span></div>
+        <div class="summary-row"><span class="label">False Positives</span><span id="res-fp"></span></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('sigma')">Sigma</button>
+        <button class="tab" onclick="showTab('splunk')">Splunk SPL</button>
+        <button class="tab" onclick="showTab('kql')">KQL (Sentinel)</button>
+        <button class="tab" onclick="showTab('wazuh')">Wazuh XML</button>
+      </div>
+
+      <div id="tab-sigma" class="tab-content active">
+        <div class="code-header">
+          <span>Sigma Rule</span>
+          <button onclick="copyCode('code-sigma')">Copy</button>
+        </div>
+        <pre id="code-sigma"></pre>
+      </div>
+      <div id="tab-splunk" class="tab-content hidden">
+        <div class="code-header">
+          <span>Splunk SPL</span>
+          <button onclick="copyCode('code-splunk')">Copy</button>
+        </div>
+        <pre id="code-splunk"></pre>
+      </div>
+      <div id="tab-kql" class="tab-content hidden">
+        <div class="code-header">
+          <span>KQL — Microsoft Sentinel</span>
+          <button onclick="copyCode('code-kql')">Copy</button>
+        </div>
+        <pre id="code-kql"></pre>
+      </div>
+      <div id="tab-wazuh" class="tab-content hidden">
+        <div class="code-header">
+          <span>Wazuh XML Rule</span>
+          <button onclick="copyCode('code-wazuh')">Copy</button>
+        </div>
+        <pre id="code-wazuh"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function generateRules() {
+      const threat = document.getElementById("threat").value.trim();
+      const mitre_id = document.getElementById("mitre_id").value.trim();
+      if (!threat) { alert("Please enter a threat description."); return; }
+
+      document.getElementById("loading").classList.remove("hidden");
+      document.getElementById("results").classList.add("hidden");
+      document.getElementById("error-box").classList.add("hidden");
+      document.getElementById("generate-btn").disabled = true;
+
+      try {
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ threat, mitre_id })
+        });
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error);
+
+        document.getElementById("res-summary").textContent = data.threat_summary;
+        document.getElementById("res-mitre").textContent = data.mitre_technique;
+        const sev = document.getElementById("res-severity");
+        sev.textContent = data.severity;
+        sev.className = "severity-badge sev-" + data.severity.toLowerCase();
+        document.getElementById("res-fp").textContent = data.false_positive_notes;
+        document.getElementById("code-sigma").textContent = data.sigma;
+        document.getElementById("code-splunk").textContent = data.splunk_spl;
+        document.getElementById("code-kql").textContent = data.kql;
+        document.getElementById("code-wazuh").textContent = data.wazuh_xml;
+
+        document.getElementById("results").classList.remove("hidden");
+      } catch (err) {
+        const errBox = document.getElementById("error-box");
+        errBox.textContent = "Error: " + err.message;
+        errBox.classList.remove("hidden");
+      } finally {
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("generate-btn").disabled = false;
+      }
+    }
+
+    function showTab(name) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+      document.getElementById("tab-" + name).classList.remove("hidden");
+      event.target.classList.add("active");
+    }
+
+    function copyCode(id) {
+      navigator.clipboard.writeText(document.getElementById(id).textContent);
+      event.target.textContent = "Copied!";
+      setTimeout(() => event.target.textContent = "Copy", 1500);
+    }
+  </script>
+</body>
+</html>
