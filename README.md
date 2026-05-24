@@ -27,6 +27,22 @@ Python · Flask · Anthropic Claude API · HTML/CSS/JS
 5. `python app.py`
 6. Open `http://127.0.0.1:5000`
 
+## Screenshots
+
+### UI
+![UI](screenshots/ui.png)
+
+### Summary Card — Critical Severity (Mimikatz/LSASS)
+![Summary](screenshots/summary.png)
+
+### Splunk SPL Output
+![Splunk SPL](screenshots/splunk.png)
+
+### KQL — Microsoft Sentinel Output
+![KQL](screenshots/kql.png)
+
+### Wazuh XML Output
+![Wazuh](screenshots/wazuh.png)
 ## Development Challenges & How I Solved Them
 
 ### 1. Virtual Environment Not Activating (Windows vs Linux commands)
